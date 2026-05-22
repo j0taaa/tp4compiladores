@@ -1,0 +1,368 @@
+#1
+_program
+  #1
+  _class
+    Counter
+    Object
+    "good.cl"
+    (
+    #2
+    _attr
+      value
+      Int
+      #2
+      _int
+        0
+      : Int
+    #4
+    _method
+      init
+      #4
+      _formal
+        v
+        Int
+      SELF_TYPE
+      #5
+      _block
+        #6
+        _assign
+          value
+          #6
+          _object
+            v
+          : Int
+        : Int
+        #7
+        _object
+          self
+        : SELF_TYPE
+      : SELF_TYPE
+    #11
+    _method
+      inc
+      SELF_TYPE
+      #12
+      _block
+        #13
+        _assign
+          value
+          #13
+          _plus
+            #13
+            _object
+              value
+            : Int
+            #13
+            _int
+              1
+            : Int
+          : Int
+        : Int
+        #14
+        _object
+          self
+        : SELF_TYPE
+      : SELF_TYPE
+    #18
+    _method
+      get
+      Int
+      #18
+      _object
+        value
+      : Int
+    )
+  #21
+  _class
+    FancyCounter
+    Counter
+    "good.cl"
+    (
+    #22
+    _attr
+      label
+      String
+      #22
+      _string
+        "counter"
+      : String
+    #24
+    _method
+      rename
+      #24
+      _formal
+        s
+        String
+      SELF_TYPE
+      #25
+      _block
+        #26
+        _assign
+          label
+          #26
+          _dispatch
+            #26
+            _object
+              s
+            : String
+            concat
+            (
+            #26
+            _string
+              "!"
+            : String
+            )
+          : String
+        : String
+        #27
+        _object
+          self
+        : SELF_TYPE
+      : SELF_TYPE
+    #31
+    _method
+      choose
+      #31
+      _formal
+        flag
+        Bool
+      #31
+      _formal
+        other
+        Counter
+      Counter
+      #32
+      _cond
+        #32
+        _object
+          flag
+        : Bool
+        #32
+        _object
+          self
+        : SELF_TYPE
+        #32
+        _object
+          other
+        : Counter
+      : Counter
+    )
+  #36
+  _class
+    Main
+    IO
+    "good.cl"
+    (
+    #37
+    _method
+      main
+      Object
+      #38
+      _let
+        c
+        FancyCounter
+        #38
+        _dispatch
+          #38
+          _dispatch
+            #38
+            _new
+              FancyCounter
+            : FancyCounter
+            init
+            (
+            #38
+            _int
+              3
+            : Int
+            )
+          : FancyCounter
+          rename
+          (
+          #38
+          _string
+            "ok"
+          : String
+          )
+        : FancyCounter
+        #38
+        _block
+          #39
+          _dispatch
+            #39
+            _object
+              c
+            : FancyCounter
+            inc
+            (
+            )
+          : FancyCounter
+          #40
+          _dispatch
+            #40
+            _object
+              self
+            : SELF_TYPE
+            out_int
+            (
+            #40
+            _dispatch
+              #40
+              _object
+                c
+              : FancyCounter
+              get
+              (
+              )
+            : Int
+            )
+          : SELF_TYPE
+          #41
+          _dispatch
+            #41
+            _object
+              self
+            : SELF_TYPE
+            out_string
+            (
+            #41
+            _string
+              "\n"
+            : String
+            )
+          : SELF_TYPE
+          #42
+          _cond
+            #42
+            _isvoid
+              #42
+              _object
+                c
+              : FancyCounter
+            : Bool
+            #42
+            _int
+              0
+            : Int
+            #42
+            _dispatch
+              #42
+              _object
+                c
+              : FancyCounter
+              get
+              (
+              )
+            : Int
+          : Int
+          #43
+          _loop
+            #43
+            _lt
+              #43
+              _dispatch
+                #43
+                _object
+                  c
+                : FancyCounter
+                get
+                (
+                )
+              : Int
+              #43
+              _int
+                5
+              : Int
+            : Bool
+            #43
+            _dispatch
+              #43
+              _object
+                c
+              : FancyCounter
+              inc
+              (
+              )
+            : FancyCounter
+          : Object
+          #44
+          _typcase
+            #44
+            _dispatch
+              #44
+              _object
+                c
+              : FancyCounter
+              choose
+              (
+              #44
+              _bool
+                1
+              : Bool
+              #44
+              _new
+                Counter
+              : Counter
+              )
+            : Counter
+            #45
+            _branch
+              f
+              FancyCounter
+              #45
+              _dispatch
+                #45
+                _object
+                  f
+                : FancyCounter
+                rename
+                (
+                #45
+                _string
+                  "case"
+                : String
+                )
+              : FancyCounter
+            #46
+            _branch
+              base
+              Counter
+              #46
+              _dispatch
+                #46
+                _object
+                  base
+                : Counter
+                inc
+                (
+                )
+              : Counter
+            #47
+            _branch
+              obj
+              Object
+              #47
+              _object
+                obj
+              : Object
+          : Object
+          #49
+          _dispatch
+            #49
+            _static_dispatch
+              #49
+              _object
+                c
+              : FancyCounter
+              Counter
+              inc
+              (
+              )
+            : Counter
+            get
+            (
+            )
+          : Int
+        : Int
+      : Int
+    )

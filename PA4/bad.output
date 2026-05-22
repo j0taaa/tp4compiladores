@@ -1,0 +1,18 @@
+bad.cl:7: Attribute inherited is an attribute of an inherited class.
+bad.cl:8: In redefined method same, signature differs from inherited method.
+bad.cl:9: Formal parameter a is multiply defined.
+bad.cl:10: 'self' cannot be the name of a formal parameter.
+bad.cl:16: Assignment to undeclared identifier missing.
+bad.cl:18: In call of method same, type Bool of parameter x does not conform to declared type Int.
+bad.cl:19: Dispatch to undefined method unknown.
+bad.cl:20: Predicate of 'if' does not have type Bool.
+bad.cl:21: Loop condition does not have type Bool.
+bad.cl:22: Illegal comparison with a basic type.
+bad.cl:23: Argument of '~' has type other than Int.
+bad.cl:24: Argument of 'not' has type other than Bool.
+bad.cl:25: 'new' used with undefined class Unknown.
+bad.cl:26: 'self' cannot be bound in a let expression.
+bad.cl:27: Inferred type String of initialization of y does not conform to identifier's declared type Int.
+bad.cl:30: Duplicate branch Int in case statement.
+bad.cl:31: Case branch has undefined type SELF_TYPE.
+Compilation halted due to static semantic errors.
