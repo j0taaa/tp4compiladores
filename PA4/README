@@ -181,17 +181,21 @@ Instructions
 Write-up for PA4
 ----------------
 
-Este trabalho implementa o analisador semantico estatico de Cool na versao C++ do
-esqueleto PA4. A implementacao principal esta em semant.cc e as estruturas de apoio
-foram declaradas em semant.h. O arquivo cool-tree.h foi mantido sem alteracoes de
-comportamento; para integrar com o esqueleto antigo em compiladores C++ atuais, semant.h
-inclui a AST com acesso aos campos internos das classes concretas e semant.cc usa
-dynamic_cast para distinguir cada no.
+Esta entrega implementa a etapa semantica do compilador Cool usando o esqueleto C++ da
+PA4. A maior parte do trabalho ficou em semant.cc; em semant.h ficaram apenas as tabelas
+e assinaturas auxiliares usadas pela fase. Mantivemos cool-tree.h praticamente como veio
+do esqueleto, porque mexer nele tende a quebrar o restante do codigo gerado pelo APS.
+
+Uma diferenca pratica do ambiente atual e que o material original e antigo. Para conseguir
+compilar com o g++ disponivel aqui, semant.h inclui a AST de forma que semant.cc consiga
+acessar os campos das classes concretas. A partir dai, a identificacao do tipo de cada no
+da AST e feita com dynamic_cast.
 
 Organizacao da implementacao
 ----------------------------
 
-A analise foi dividida em tres passos principais.
+A analise ficou dividida em tres passos. Essa divisao foi escolhida porque tentar checar
+expressoes antes de saber se a hierarquia e valida gera muitos erros falsos.
 
 1. Instalacao das classes basicas e validacao da hierarquia:
    Object, IO, Int, Bool e String sao criadas com as assinaturas definidas pelo manual.
@@ -221,17 +225,40 @@ A analise foi dividida em tres passos principais.
 Decisoes de projeto
 -------------------
 
-As tabelas de metodos e atributos sao materializadas por classe ja contendo membros
-herdados. Isso simplifica a consulta em dispatch e a montagem do ambiente de objetos,
-alem de tornar explicita a verificacao de sobrescrita. A relacao de subtipagem e o menor
-ancestral comum sao calculados diretamente sobre o mapa de pais da hierarquia. SELF_TYPE
-e tratado de forma contextual: em retornos de metodos e em self ele representa a classe
-corrente; em conformidade contra SELF_TYPE, somente SELF_TYPE e aceito, preservando a
-semantica especial desse tipo.
+As tabelas de metodos e atributos sao guardadas por classe ja com os membros herdados.
+Isso deixou a checagem de dispatch mais simples: a busca comeca na classe estatica do
+receptor e sobe pela tabela de pais quando necessario. Tambem facilitou montar o ambiente
+dos identificadores, porque os atributos visiveis da classe atual ja estao reunidos antes
+de entrar nos metodos.
+
+A relacao de subtipagem e o menor ancestral comum sao calculados diretamente sobre o mapa
+de pais da hierarquia. SELF_TYPE foi o ponto que exigiu mais cuidado: no corpo de uma
+classe ele precisa ser comparado como a classe corrente, mas quando o tipo declarado de
+destino tambem e SELF_TYPE a regra e mais restrita. Por isso ha funcoes separadas para
+traduzir SELF_TYPE no contexto da classe e para testar conformidade.
 
 A hierarquia mal formada interrompe a analise posterior, pois regras de subtipagem deixam
 de ser confiaveis nesse caso. Ja erros em features e expressoes sao acumulados para que
 um unico arquivo ruim gere varias mensagens uteis.
+
+Dificuldades encontradas
+------------------------
+
+A maior dificuldade foi separar erros que impedem a continuacao da analise dos erros que
+podem ser recuperados. Ciclos de heranca e pais inexistentes tornam a arvore de tipos
+insegura, entao a implementacao para depois dessa etapa. Em expressoes, por outro lado,
+foi melhor continuar usando Object como tipo de recuperacao, pois assim bad.cl e os testes
+extras conseguem mostrar varios problemas de uma vez.
+
+Outro cuidado foi com no_expr. Inicializadores ausentes nao devem gerar erro de tipo, por
+isso esse no recebe No_type e a checagem de conformidade trata No_type como aceitavel
+nesses pontos. Sem isso, atributos sem inicializacao e metodos das classes basicas
+produziam erros artificiais.
+
+Tambem apareceu uma incompatibilidade do esqueleto com compiladores modernos: o codigo de
+suporte antigo ainda gera avisos sobre literais de string e register. Esses avisos nao
+foram escondidos; eles continuam aparecendo em make semant, mas nao impedem a compilacao
+nem a execucao dos testes.
 
 Testes
 ------
@@ -264,14 +291,15 @@ bad.cl mantem uma hierarquia sem ciclos para permitir recuperacao e testa erros 
 - inicializacao de let com tipo incompativel;
 - branch duplicado e branch com SELF_TYPE em case.
 
-Tambem foi adicionada uma bateria complementar em extra-tests/. Os arquivos em
-extra-tests/good cobrem casos menores e isolados de despacho dinamico, SELF_TYPE,
-despacho estatico, menor ancestral comum em if/case, sombreamento de identificadores,
-operacoes basicas e compilacao com multiplos arquivos de entrada. Os arquivos em
-extra-tests/bad cobrem hierarquias invalidas, declaracoes de features invalidas, erros
-de expressoes, erros de dispatch, let/case/new invalidos e assinatura incorreta de
-Main.main. O script extra-tests/run-extra-tests.sh executa esses casos e tambem roda uma
-lista ampla de exemplos oficiais do diretorio /var/tmp/cool/examples.
+Tambem foi adicionada uma bateria complementar em extra-tests/. A ideia desses arquivos
+nao foi criar programas grandes, mas casos pequenos que deixam claro qual regra esta sendo
+testada. Os arquivos em extra-tests/good cobrem despacho dinamico, SELF_TYPE, despacho
+estatico, menor ancestral comum em if/case, sombreamento de identificadores, operacoes
+basicas e compilacao com multiplos arquivos de entrada. Os arquivos em extra-tests/bad
+cobrem hierarquias invalidas, declaracoes de features invalidas, erros de expressoes,
+erros de dispatch, let/case/new invalidos e assinatura incorreta de Main.main. O script
+extra-tests/run-extra-tests.sh executa esses casos e tambem roda uma lista ampla de
+exemplos oficiais do diretorio /var/tmp/cool/examples.
 
 Validacao executada
 -------------------
