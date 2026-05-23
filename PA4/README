@@ -264,6 +264,15 @@ bad.cl mantem uma hierarquia sem ciclos para permitir recuperacao e testa erros 
 - inicializacao de let com tipo incompativel;
 - branch duplicado e branch com SELF_TYPE em case.
 
+Tambem foi adicionada uma bateria complementar em extra-tests/. Os arquivos em
+extra-tests/good cobrem casos menores e isolados de despacho dinamico, SELF_TYPE,
+despacho estatico, menor ancestral comum em if/case, sombreamento de identificadores,
+operacoes basicas e compilacao com multiplos arquivos de entrada. Os arquivos em
+extra-tests/bad cobrem hierarquias invalidas, declaracoes de features invalidas, erros
+de expressoes, erros de dispatch, let/case/new invalidos e assinatura incorreta de
+Main.main. O script extra-tests/run-extra-tests.sh executa esses casos e tambem roda uma
+lista ampla de exemplos oficiais do diretorio /var/tmp/cool/examples.
+
 Validacao executada
 -------------------
 
@@ -271,10 +280,17 @@ Foram executados:
 
 - make semant, para compilar o analisador;
 - make dotest, que aceita good.cl e rejeita bad.cl;
+- ./extra-tests/run-extra-tests.sh, com 30 verificacoes: good.cl, bad.cl, 7 testes
+  complementares bons, 6 testes complementares ruins, 15 exemplos oficiais individuais
+  e o par oficial atoi.cl + atoi_test.cl;
+- ./mycoolc nos 7 testes bons locais, confirmando integracao com geracao de codigo;
+- /var/tmp/cool/bin/coolc nos mesmos 7 testes bons locais e nos 7 testes ruins locais,
+  confirmando que o compilador padrao aceita/rejeita esses casos da mesma forma;
 - ./mysemant em exemplos oficiais: hello_world.cl, list.cl, arith.cl, cells.cl e
   primes.cl;
-- ./mycoolc good.cl, confirmando que a AST tipada tambem segue para geracao de codigo
-  e produz good.s.
+- ./mycoolc em 16 entradas oficiais boas: arith.cl, book_list.cl, cells.cl, complex.cl,
+  graph.cl, hairyscary.cl, hello_world.cl, io.cl, lam.cl, life.cl, list.cl,
+  new_complex.cl, palindrome.cl, primes.cl, sort_list.cl e atoi.cl + atoi_test.cl.
 
 Observacoes
 -----------
