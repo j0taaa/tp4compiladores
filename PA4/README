@@ -187,18 +187,32 @@ primeiro montamos e validamos a hierarquia de classes; depois montamos as tabela
 atributos e métodos herdados; por fim verificamos os tipos das expressões e anotamos cada
 nó com o tipo inferido.
 
-As principais regras tratadas foram: classes duplicadas, herança inválida ou cíclica,
-redefinição incorreta de atributos e métodos, tipos inexistentes, escopo de identificadores,
-uso de self, conformidade de tipos, SELF_TYPE, dispatch dinâmico e estático, let, case,
-if, while, operações aritméticas, comparações e igualdade. Quando a hierarquia está errada,
-paramos a análise porque a subtipagem deixa de ser confiável. Nos demais erros, tentamos
-continuar usando Object como tipo de recuperação, para mostrar mais de uma mensagem no
-mesmo arquivo.
+Na primeira etapa, registramos Object, IO, Int, Bool e String com as assinaturas básicas
+do manual. Depois registramos as classes do programa e verificamos classes duplicadas,
+herança de classes proibidas, pais inexistentes, ciclos e existência de Main. Se essa parte
+falha, interrompemos a análise seguinte, porque as regras de subtipagem deixam de ter uma
+base confiável.
 
-Uma dificuldade foi adaptar o esqueleto antigo ao g++ atual. O material de suporte ainda
-gera alguns avisos de compilação, mas eles vêm dos arquivos legados e não impedem a execução.
-Também tivemos cuidado com no_expr: inicializadores ausentes recebem No_type para não
-gerar erro falso em atributos sem inicialização e nas classes básicas.
+Na segunda etapa, copiamos para cada classe os atributos e métodos herdados. Isso deixou
+mais simples conferir redefinições: atributos herdados não podem ser redefinidos, e métodos
+só podem ser sobrescritos quando mantêm a mesma quantidade de parâmetros, os mesmos tipos
+de parâmetros e o mesmo tipo de retorno. Também verificamos tipos declarados inexistentes,
+uso inválido de SELF_TYPE em parâmetros formais, parâmetros repetidos e uso indevido de
+self.
+
+Na terceira etapa, fazemos a checagem das expressões. Foram implementadas as regras para
+atribuição, dispatch dinâmico e estático, let, case, if, while, blocos, operações
+aritméticas, comparações, igualdade, isvoid, not, new, constantes e identificadores. Para
+SELF_TYPE, usamos a classe atual como contexto nas comparações de conformidade. Quando o
+erro não impede a continuação, usamos Object como tipo de recuperação para evitar parar no
+primeiro problema.
+
+As principais dificuldades foram separar erros de hierarquia, que impedem uma checagem
+confiável, dos erros de expressão, que podem ser acumulados. Também tivemos cuidado com
+no_expr: inicializadores ausentes recebem No_type para não gerar erro falso em atributos
+sem inicialização e nas classes básicas. Outra adaptação foi lidar com o esqueleto antigo
+em um g++ mais novo; os avisos restantes vêm do código de suporte legado e não impedem a
+compilação.
 
 Os testes principais estão em good.cl e bad.cl. O good.cl exercita herança, SELF_TYPE,
 dispatch, let, if, while, case, atributos, chamadas de IO/String e anotações de tipos. O
@@ -208,8 +222,11 @@ não declarado, argumentos incorretos, método inexistente, predicados não Bool
 ilegal, new de classe inexistente, let com self e branches inválidos em case.
 
 Também deixamos uma bateria extra em extra-tests/. Os arquivos good testam casos menores
-que devem passar; os arquivos bad testam casos que devem falhar. O script
-extra-tests/run-extra-tests.sh roda esses testes e exemplos oficiais de /var/tmp/cool/examples.
+de dispatch, SELF_TYPE, despacho estático, menor ancestral comum em if/case, escopo e
+operações básicas. Os arquivos bad testam hierarquias inválidas, declarações incorretas de
+features, erros de expressão, erros de dispatch, let/case/new inválidos e assinatura errada
+de Main.main. O script extra-tests/run-extra-tests.sh roda esses testes e exemplos oficiais
+de /var/tmp/cool/examples.
 
 Validação feita:
 - make semant;
