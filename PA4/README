@@ -181,150 +181,40 @@ Instructions
 Write-up for PA4
 ----------------
 
-Esta entrega implementa a etapa semântica do compilador Cool usando o esqueleto C++ da
-PA4. A maior parte do trabalho ficou em semant.cc; em semant.h ficaram apenas as tabelas
-e assinaturas auxiliares usadas pela fase. Mantivemos cool-tree.h praticamente como veio
-do esqueleto, porque mexer nele tende a quebrar o restante do código gerado pelo APS.
+Implementamos a análise semântica no esqueleto C++ da PA4. O código principal ficou em
+semant.cc, com as estruturas auxiliares em semant.h. A AST é percorrida em etapas:
+primeiro montamos e validamos a hierarquia de classes; depois montamos as tabelas de
+atributos e métodos herdados; por fim verificamos os tipos das expressões e anotamos cada
+nó com o tipo inferido.
 
-Uma diferença prática do ambiente atual é que o material original é antigo. Para conseguir
-compilar com o g++ disponível aqui, semant.h inclui a AST de forma que semant.cc consiga
-acessar os campos das classes concretas. A partir daí, a identificação do tipo de cada nó
-da AST é feita com dynamic_cast.
+As principais regras tratadas foram: classes duplicadas, herança inválida ou cíclica,
+redefinição incorreta de atributos e métodos, tipos inexistentes, escopo de identificadores,
+uso de self, conformidade de tipos, SELF_TYPE, dispatch dinâmico e estático, let, case,
+if, while, operações aritméticas, comparações e igualdade. Quando a hierarquia está errada,
+paramos a análise porque a subtipagem deixa de ser confiável. Nos demais erros, tentamos
+continuar usando Object como tipo de recuperação, para mostrar mais de uma mensagem no
+mesmo arquivo.
 
-Organização da implementação
-----------------------------
+Uma dificuldade foi adaptar o esqueleto antigo ao g++ atual. O material de suporte ainda
+gera alguns avisos de compilação, mas eles vêm dos arquivos legados e não impedem a execução.
+Também tivemos cuidado com no_expr: inicializadores ausentes recebem No_type para não
+gerar erro falso em atributos sem inicialização e nas classes básicas.
 
-A análise ficou dividida em três passos. Essa divisão foi escolhida porque tentar checar
-expressões antes de saber se a hierarquia é válida gera muitos erros falsos.
+Os testes principais estão em good.cl e bad.cl. O good.cl exercita herança, SELF_TYPE,
+dispatch, let, if, while, case, atributos, chamadas de IO/String e anotações de tipos. O
+bad.cl mantém a hierarquia sem ciclos para testar vários erros no mesmo programa, como
+atributo herdado redefinido, assinatura inválida de método, formal duplicado, identificador
+não declarado, argumentos incorretos, método inexistente, predicados não Bool, comparação
+ilegal, new de classe inexistente, let com self e branches inválidos em case.
 
-1. Instalação das classes básicas e validação da hierarquia:
-   Object, IO, Int, Bool e String são criadas com as assinaturas definidas pelo manual.
-   Em seguida, as classes do programa são registradas em uma tabela por nome. Nesta etapa
-   são verificados nomes duplicados, redefinição de classes básicas, herança de Int,
-   Bool, String ou SELF_TYPE, herança de classe inexistente, ciclos de herança e a
-   existência da classe Main.
+Também deixamos uma bateria extra em extra-tests/. Os arquivos good testam casos menores
+que devem passar; os arquivos bad testam casos que devem falhar. O script
+extra-tests/run-extra-tests.sh roda esses testes e exemplos oficiais de /var/tmp/cool/examples.
 
-2. Construção das tabelas herdadas de atributos e métodos:
-   Para cada classe, as tabelas do pai são copiadas antes de processar as features locais.
-   Atributos redefinidos a partir de ancestrais são rejeitados. Métodos podem sobrescrever
-   métodos herdados somente quando número de parâmetros, tipos dos parâmetros e tipo de
-   retorno permanecem iguais. Também são verificadas declarações de tipos inexistentes,
-   uso ilegal de SELF_TYPE em parâmetros formais, parâmetros repetidos e uso de self como
-   formal ou atributo. Ao fim desta etapa, Main.main também é verificado: ele precisa
-   existir e não pode receber argumentos.
-
-3. Inferência e checagem de tipos das expressões:
-   Cada expressão recebe seu campo type com o Symbol inferido. O nó no_expr recebe
-   No_type. O ambiente de objetos usa SymbolTable, com self disponível como SELF_TYPE e
-   atributos herdados visíveis em métodos e inicializadores. A checagem cobre atribuição,
-   dispatch dinâmico e estático, if, while, case, bloco, let, aritmética, comparações,
-   igualdade, not, isvoid, new, constantes e identificadores. Quando um erro de tipo é
-   encontrado, o analisador emite uma mensagem com arquivo e linha e usa Object como tipo
-   de recuperação quando necessário para continuar reportando outros erros.
-
-Decisões de projeto
--------------------
-
-As tabelas de métodos e atributos são guardadas por classe já com os membros herdados.
-Isso deixou a checagem de dispatch mais simples: a busca começa na classe estática do
-receptor e sobe pela tabela de pais quando necessário. Também facilitou montar o ambiente
-dos identificadores, porque os atributos visíveis da classe atual já estão reunidos antes
-de entrar nos métodos.
-
-A relação de subtipagem e o menor ancestral comum são calculados diretamente sobre o mapa
-de pais da hierarquia. SELF_TYPE foi o ponto que exigiu mais cuidado: no corpo de uma
-classe ele precisa ser comparado como a classe corrente, mas quando o tipo declarado de
-destino também é SELF_TYPE a regra é mais restrita. Por isso há funções separadas para
-traduzir SELF_TYPE no contexto da classe e para testar conformidade.
-
-A hierarquia mal formada interrompe a análise posterior, pois regras de subtipagem deixam
-de ser confiáveis nesse caso. Já erros em features e expressões são acumulados para que
-um único arquivo ruim gere várias mensagens úteis.
-
-Dificuldades encontradas
-------------------------
-
-Eu tive que separar os erros que impedem a continuação da análise dos erros que podem ser
-recuperados. Ciclos de herança e pais inexistentes tornam a árvore de tipos insegura,
-então a implementação para depois dessa etapa. Em expressões, por outro lado, foi melhor
-continuar usando Object como tipo de recuperação, pois assim bad.cl e os testes extras
-conseguem mostrar vários problemas de uma vez.
-
-Outro cuidado foi com no_expr. Inicializadores ausentes não devem gerar erro de tipo, por
-isso esse nó recebe No_type e a checagem de conformidade trata No_type como aceitável
-nesses pontos. Sem isso, atributos sem inicialização e métodos das classes básicas
-produziam erros artificiais.
-
-Também apareceu uma incompatibilidade do esqueleto com compiladores modernos: o código de
-suporte antigo ainda gera avisos sobre literais de string e register. Esses avisos não
-foram escondidos; eles continuam aparecendo em make semant, mas não impedem a compilação
-nem a execução dos testes.
-
-Testes
-------
-
-good.cl contém um programa válido com:
-
-- classes Counter, FancyCounter e Main;
-- herança e despacho dinâmico;
-- despacho estático com @;
-- retorno SELF_TYPE encadeado;
-- atributos com inicialização;
-- atribuições, blocos, let, if, while e case;
-- chamadas a métodos básicos de IO e String;
-- anotação de tipos exercitada em expressões com Int, Bool, String, Object e SELF_TYPE.
-
-bad.cl mantém uma hierarquia sem ciclos para permitir recuperação e testa erros variados:
-
-- atributo redefinido a partir de ancestral;
-- assinatura inválida em sobrescrita de método;
-- parâmetro formal duplicado;
-- self usado como nome de formal;
-- atribuição a identificador não declarado;
-- chamada com argumento de tipo incorreto;
-- chamada a método inexistente;
-- predicados não Bool em if e while;
-- igualdade ilegal envolvendo tipo básico;
-- uso incorreto de ~ e not;
-- new de classe inexistente;
-- self ligado em let;
-- inicialização de let com tipo incompatível;
-- branch duplicado e branch com SELF_TYPE em case.
-
-Também foi adicionada uma bateria complementar em extra-tests/. A ideia desses arquivos
-não foi criar programas grandes, mas casos pequenos que deixam claro qual regra está sendo
-testada. Os arquivos em extra-tests/good cobrem despacho dinâmico, SELF_TYPE, despacho
-estático, menor ancestral comum em if/case, sombreamento de identificadores, operações
-básicas e compilação com múltiplos arquivos de entrada. Os arquivos em extra-tests/bad
-cobrem hierarquias inválidas, declarações de features inválidas, erros de expressões,
-erros de dispatch, let/case/new inválidos e assinatura incorreta de Main.main. O script
-extra-tests/run-extra-tests.sh executa esses casos e também roda uma lista ampla de
-exemplos oficiais do diretório /var/tmp/cool/examples.
-
-Validação executada
--------------------
-
-Foram executados:
-
-- make semant, para compilar o analisador;
-- make dotest, que aceita good.cl e rejeita bad.cl;
-- ./extra-tests/run-extra-tests.sh, com 30 verificações: good.cl, bad.cl, 7 testes
-  complementares bons, 6 testes complementares ruins, 15 exemplos oficiais individuais
-  e o par oficial atoi.cl + atoi_test.cl;
-- ./mycoolc nos 7 testes bons locais, confirmando integração com geração de código;
-- /var/tmp/cool/bin/coolc nos mesmos 7 testes bons locais e nos 7 testes ruins locais,
-  confirmando que o compilador padrão aceita/rejeita esses casos da mesma forma;
-- ./mysemant em exemplos oficiais: hello_world.cl, list.cl, arith.cl, cells.cl e
-  primes.cl;
-- ./mycoolc em 16 entradas oficiais boas: arith.cl, book_list.cl, cells.cl, complex.cl,
-  graph.cl, hairyscary.cl, hello_world.cl, io.cl, lam.cl, life.cl, list.cl,
-  new_complex.cl, palindrome.cl, primes.cl, sort_list.cl e atoi.cl + atoi_test.cl.
-
-Observações
------------
-
-O esqueleto PA4 original foi escrito para compiladores C++ antigos. A inclusão de
-cool-tree.h em semant.h foi ajustada para funcionar com os headers C++ atuais usados
-neste ambiente. Os avisos de compilação restantes são do material de suporte legado
-relacionados a conversões de literais de string e uso de register, não a erros da fase
-semântica implementada.
+Validação feita:
+- make semant;
+- make dotest;
+- ./extra-tests/run-extra-tests.sh, com 30 verificações;
+- ./mycoolc nos testes bons locais e em exemplos oficiais;
+- /var/tmp/cool/bin/coolc nos testes locais, para comparar aceitação/rejeição com o
+  compilador padrão.
